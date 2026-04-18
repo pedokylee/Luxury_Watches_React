@@ -52,6 +52,27 @@ export default function ProductFilter({ filters = {}, categories = [], brands = 
                 ))}
             </select>
 
+            <select
+                value={filters.brand || ''}
+                onChange={e => applyFilter('brand', e.target.value)}
+                style={{
+                    border: '1px solid var(--color-border)',
+                    backgroundColor: 'var(--color-surface-2)',
+                    color: 'var(--color-text)',
+                    fontSize: '0.875rem',
+                    padding: '0.75rem 1rem',
+                    minHeight: '44px',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    borderRadius: '2px',
+                    order: 2,
+                }}>
+                <option value="">All brands</option>
+                {brands.map(brand => (
+                    <option key={brand.id} value={brand.id}>{brand.name}</option>
+                ))}
+            </select>
+
             {/* Sort Dropdown */}
             <select
                 value={filters.sort || ''}

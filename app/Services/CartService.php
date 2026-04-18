@@ -19,7 +19,7 @@ class CartService
     public function getCart(Request $request)
     {
         $cartId = $this->getCartIdentifier($request);
-        $cart = Cart::with('items.product')->find($cartId);
+        $cart = Cart::with(['items.product.brand', 'items.product.images'])->find($cartId);
         
         if (!$cart) {
             $cart = $this->createCart($request);

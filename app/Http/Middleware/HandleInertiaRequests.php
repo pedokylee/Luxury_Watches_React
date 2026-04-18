@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Illuminate\Support\Facades\Schema;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -35,13 +36,27 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $cart = null;
+        $cartCount = 0;
+
+        if ($request->user() && Schema::hasTable('carts') && Schema::hasTable('cart_items')) {
+            try {
+                $cartService = app(\App\Services\CartService::class);
+                $cart = $cartService->getCart($request);
+                $cartCount = $cartService->getCartCount($request);
+            } catch (\Throwable $e) {
+                $cart = null;
+                $cartCount = 0;
+            }
+        }
+
         return [
             ...parent::share($request),
-'auth' => [
+            'auth' => [
                 'user' => $request->user(),
             ],
-            'cart' => app(\App\Services\CartService::class)->getCart($request),
-            'cartCount' => app(\App\Services\CartService::class)->getCartCount($request),
+            'cart' => $cart,
+            'cartCount' => $cartCount,
         ];
     }
 }

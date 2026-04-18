@@ -84,7 +84,7 @@ class ProductSeeder extends Seeder
                 'stock' => 4,
                 'brand_id' => Brand::where('name', 'Audemars Piguet')->first()?->id ?? 4,
                 'category_id' => Category::where('name', 'Sports')->first()?->id ?? 1,
-                'image_url' => 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600&h=600&fit=crop',
+                'image_url' => 'https://images.europeanwatch.com/images/59/59988-1.jpg',
             ],
             [
                 'name' => 'Royal Oak Offshore Chronograph',
@@ -123,4 +123,3 @@ class ProductSeeder extends Seeder
         }
     }
 }
-

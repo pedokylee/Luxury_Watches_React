@@ -7,11 +7,14 @@ export default function Edit({ product = null, categories = [], brands = [] }) {
     const demo = {
         id: 1, name: 'Royal Oak Offshore', brand_id: 4, category_id: 3,
         price: 45000, stock: 5, description: 'A bold and sporty timepiece.', is_active: true,
-        image_url: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=400'
+        image_url: 'https://images.europeanwatch.com/images/59/59988-1.jpg'
     };
     const p = product || demo;
+    const existingImage = p.image_url || p.images?.[0]?.url || null;
 
-    const [preview, setPreview] = useState(p.image_url || null);
+    const [preview, setPreview] = useState(existingImage);
+    const [dragActive, setDragActive] = useState(false);
+    const [clientError, setClientError] = useState('');
     const fileRef = useRef();
 
     const { data, setData, post, processing, errors } = useForm({
@@ -26,13 +29,55 @@ export default function Edit({ product = null, categories = [], brands = [] }) {
         image: null,
     });
 
-    const handleFile = (e) => {
-        const file = e.target.files[0];
+    const processFile = (file) => {
         if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            setClientError('Only image files can be uploaded.');
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            setClientError('Image must be 2MB or smaller.');
+            return;
+        }
+
+        setClientError('');
         setData('image', file);
+
         const reader = new FileReader();
         reader.onload = () => setPreview(reader.result);
         reader.readAsDataURL(file);
+    };
+
+    const handleFile = (e) => {
+        processFile(e.target.files[0]);
+    };
+
+    const clearSelectedImage = () => {
+        setPreview(null);
+        setData('image', null);
+        setClientError('');
+
+        if (fileRef.current) {
+            fileRef.current.value = '';
+        }
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setDragActive(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        setDragActive(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setDragActive(false);
+        processFile(e.dataTransfer.files[0]);
     };
 
     const submit = (e) => {
@@ -149,11 +194,19 @@ export default function Edit({ product = null, categories = [], brands = [] }) {
                                 Product Image
                             </h3>
                             {preview ? (
-                                <div style={{ position: 'relative', marginBottom: '1rem' }}>
+                                <div
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                    style={{ position: 'relative', marginBottom: '1rem', border: `2px dashed ${dragActive ? 'var(--color-accent)' : 'transparent'}` }}
+                                >
                                     <img src={preview} alt="Preview"
                                          style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', backgroundColor: '#0d0d0d' }} />
+                                    <div style={{ position: 'absolute', left: '0.75rem', bottom: '0.75rem', padding: '0.4rem 0.6rem', backgroundColor: 'rgba(0,0,0,0.72)', color: 'white', fontSize: '0.68rem', letterSpacing: '0.06em' }}>
+                                        {dragActive ? 'Drop to replace image' : 'Drag a new image here to replace'}
+                                    </div>
                                     <button type="button"
-                                            onClick={() => { setPreview(null); setData('image', null); if (fileRef.current) fileRef.current.value = ''; }}
+                                            onClick={clearSelectedImage}
                                             style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', width: 28, height: 28,
                                                      borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.7)',
                                                      border: '1px solid var(--color-border)', display: 'flex',
@@ -163,13 +216,27 @@ export default function Edit({ product = null, categories = [], brands = [] }) {
                                 </div>
                             ) : (
                                 <div onClick={() => fileRef.current.click()}
-                                     style={{ border: '2px dashed var(--color-border)', aspectRatio: '1',
+                                     onDragOver={handleDragOver}
+                                     onDragLeave={handleDragLeave}
+                                     onDrop={handleDrop}
+                                     style={{ border: `2px dashed ${dragActive ? 'var(--color-accent)' : 'var(--color-border)'}`, aspectRatio: '1',
                                                display: 'flex', flexDirection: 'column', alignItems: 'center',
                                                justifyContent: 'center', gap: '0.75rem', cursor: 'pointer',
-                                               backgroundColor: 'var(--color-surface-2)', marginBottom: '1rem' }}
+                                               backgroundColor: dragActive ? 'rgba(220,38,38,0.08)' : 'var(--color-surface-2)', marginBottom: '1rem',
+                                               transition: 'border-color 0.2s, background-color 0.2s' }}
                                      className="hover:border-accent">
                                     <Upload size={28} style={{ color: 'var(--color-muted)' }} />
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>Click to upload</p>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <p style={{ fontSize: '0.8rem', color: 'white', fontWeight: 500, marginBottom: '0.2rem' }}>
+                                            {dragActive ? 'Drop Image Here' : 'Upload Image'}
+                                        </p>
+                                        <p style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>
+                                            Drag and drop or click to browse
+                                        </p>
+                                        <p style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>
+                                            PNG, JPG, WEBP up to 2MB
+                                        </p>
+                                    </div>
                                 </div>
                             )}
                             <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
@@ -177,6 +244,8 @@ export default function Edit({ product = null, categories = [], brands = [] }) {
                                     className="btn-outline" style={{ width: '100%', cursor: 'pointer', fontSize: '0.75rem' }}>
                                 {preview ? 'Change Image' : 'Choose File'}
                             </button>
+                            {clientError && <p style={{ color: 'var(--color-accent)', fontSize: '0.7rem', marginTop: '0.75rem' }}>{clientError}</p>}
+                            <Err msg={errors.image || errors.images} />
                         </div>
 
                         {/* Visibility */}

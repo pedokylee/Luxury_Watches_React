@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
+    protected $appends = ['order_number'];
+
     protected $fillable = [
         'user_id',
         'total',
@@ -17,6 +19,7 @@ class Order extends Model
 
     protected $casts = [
         'total' => 'decimal:2',
+        'shipping_address' => 'array',
     ];
 
     public function user()
@@ -37,5 +40,12 @@ class Order extends Model
     public function review()
     {
         return $this->hasOne(Review::class);
+    }
+
+    public function getOrderNumberAttribute(): string
+    {
+        $year = $this->created_at?->format('Y') ?? now()->format('Y');
+
+        return 'ORD-' . $year . '-' . str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
     }
 }

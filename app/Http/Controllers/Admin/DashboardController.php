@@ -17,9 +17,9 @@ class DashboardController extends Controller
             'totalProducts' => Product::count(),
             'totalOrders' => Order::count(),
             'totalUsers' => User::count(),
-            'totalRevenue' => Order::sum('total_amount'),
-            'recentOrders' => Order::with('user')->latest()->take(5)->get(['id', 'order_number', 'total_amount', 'status', 'created_at']),
-            'lowStockProducts' => Product::where('stock', '<=', 5)->take(5)->get(['id', 'name', 'stock']),
+            'totalRevenue' => Order::sum('total'),
+            'recentOrders' => Order::with('user')->latest()->take(5)->get(['id', 'user_id', 'total', 'status', 'created_at']),
+            'lowStockProducts' => Product::with('brand')->where('stock', '<=', 5)->take(5)->get(['id', 'name', 'stock', 'brand_id']),
         ];
 
         return Inertia::render('Admin/Dashboard', [
@@ -27,4 +27,3 @@ class DashboardController extends Controller
         ]);
     }
 }
-

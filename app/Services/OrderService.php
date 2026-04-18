@@ -22,6 +22,8 @@ class OrderService
                 throw new \Exception('Cart is empty');
             }
 
+            $cart->loadMissing('items.product');
+
             // Calculate total from cart items
             $total = $cart->items->sum(fn($item) => $item->price * $item->quantity);
 

@@ -51,15 +51,17 @@ class CheckoutController extends Controller
             'phone' => $request->phone,
             'address' => $request->address,
             'city' => $request->city,
+            'province' => $request->province,
+            'postal_code' => $request->postal_code,
             'state' => $request->province,
             'zip' => $request->postal_code,
-            'country' => 'USA',
+            'country' => 'Philippines',
         ];
 
         $order = $this->orderService->createOrder(
             Auth::id(),
             [
-                'shipping_address' => json_encode($shipping_address),
+                'shipping_address' => $shipping_address,
                 'payment_method' => $request->payment_method,
                 'notes' => $request->notes,
             ]
@@ -82,4 +84,3 @@ class CheckoutController extends Controller
         ]);
     }
 }
-

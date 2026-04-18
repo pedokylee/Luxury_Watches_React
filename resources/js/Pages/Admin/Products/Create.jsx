@@ -5,6 +5,8 @@ import { useState, useRef } from 'react';
 
 export default function Create({ categories = [], brands = [] }) {
     const [preview, setPreview] = useState(null);
+    const [dragActive, setDragActive] = useState(false);
+    const [clientError, setClientError] = useState('');
     const fileRef = useRef();
 
     const { data, setData, post, processing, errors } = useForm({
@@ -18,13 +20,55 @@ export default function Create({ categories = [], brands = [] }) {
         image: null,
     });
 
-    const handleFile = (e) => {
-        const file = e.target.files[0];
+    const processFile = (file) => {
         if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            setClientError('Only image files can be uploaded.');
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            setClientError('Image must be 2MB or smaller.');
+            return;
+        }
+
+        setClientError('');
         setData('image', file);
+
         const reader = new FileReader();
         reader.onload = () => setPreview(reader.result);
         reader.readAsDataURL(file);
+    };
+
+    const handleFile = (e) => {
+        processFile(e.target.files[0]);
+    };
+
+    const clearSelectedImage = () => {
+        setPreview(null);
+        setData('image', null);
+        setClientError('');
+
+        if (fileRef.current) {
+            fileRef.current.value = '';
+        }
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setDragActive(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        setDragActive(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setDragActive(false);
+        processFile(e.dataTransfer.files[0]);
     };
 
     const submit = (e) => {
@@ -168,7 +212,7 @@ export default function Create({ categories = [], brands = [] }) {
                                                   backgroundColor: '#0d0d0d' }} />
                                     <button
                                         type="button"
-                                        onClick={() => { setPreview(null); setData('image', null); fileRef.current.value = ''; }}
+                                        onClick={clearSelectedImage}
                                         style={{ position: 'absolute', top: '0.5rem', right: '0.5rem',
                                                  width: 28, height: 28, borderRadius: '50%',
                                                  backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid var(--color-border)',
@@ -180,19 +224,25 @@ export default function Create({ categories = [], brands = [] }) {
                             ) : (
                                 <div
                                     onClick={() => fileRef.current.click()}
-                                    style={{ border: '2px dashed var(--color-border)', aspectRatio: '1',
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                    style={{ border: `2px dashed ${dragActive ? 'var(--color-accent)' : 'var(--color-border)'}`, aspectRatio: '1',
                                               display: 'flex', flexDirection: 'column', alignItems: 'center',
                                               justifyContent: 'center', gap: '0.75rem', cursor: 'pointer',
-                                              backgroundColor: 'var(--color-surface-2)', transition: 'border-color 0.2s',
+                                              backgroundColor: dragActive ? 'rgba(220,38,38,0.08)' : 'var(--color-surface-2)', transition: 'border-color 0.2s, background-color 0.2s',
                                               marginBottom: '1rem' }}
                                     className="hover:border-accent">
                                     <Upload size={28} style={{ color: 'var(--color-muted)' }} />
                                     <div style={{ textAlign: 'center' }}>
                                         <p style={{ fontSize: '0.8rem', color: 'white', fontWeight: 500, marginBottom: '0.2rem' }}>
-                                            Upload Image
+                                            {dragActive ? 'Drop Image Here' : 'Upload Image'}
                                         </p>
                                         <p style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>
-                                            PNG, JPG up to 2MB
+                                            Drag and drop or click to browse
+                                        </p>
+                                        <p style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>
+                                            PNG, JPG, WEBP up to 2MB
                                         </p>
                                     </div>
                                 </div>
@@ -206,6 +256,7 @@ export default function Create({ categories = [], brands = [] }) {
                                     style={{ width: '100%', cursor: 'pointer', fontSize: '0.75rem' }}>
                                 {preview ? 'Change Image' : 'Choose File'}
                             </button>
+                            {clientError && <p style={{ color: 'var(--color-accent)', fontSize: '0.7rem', marginTop: '0.75rem' }}>{clientError}</p>}
                             <Err msg={errors.image} />
                         </div>
 

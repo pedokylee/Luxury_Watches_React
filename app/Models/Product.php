@@ -3,9 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Product extends Model
 {
+    protected $appends = ['is_active'];
+
     protected $fillable = [
         'name', 'slug', 'description', 'price', 'stock', 'brand_id', 'category_id', 'status', 'image_url'
     ];
@@ -30,17 +34,39 @@ class Product extends Model
         return $this->hasMany(\App\Models\ProductImage::class);
     }
 
-    public function getImageUrlAttribute()
+    public function getImageUrlAttribute($value)
     {
-        // First check if the image_url column has a value
-        if ($this->attributes['image_url'] ?? null) {
-            return $this->attributes['image_url'];
+        $primaryImage = $this->relationLoaded('images')
+            ? $this->images
+                ->sortByDesc(fn ($image) => (int) $image->is_primary)
+                ->first()
+            : $this->images()
+                ->orderByDesc('is_primary')
+                ->orderBy('id')
+                ->first();
+
+        if ($primaryImage?->image_url) {
+            return $this->resolveImageUrl($primaryImage->image_url);
         }
-        
-        // Otherwise check ProductImage records
-        $firstImage = $this->images->first();
-        return $firstImage && $firstImage->path 
-            ? \Illuminate\Support\Facades\Storage::url($firstImage->path) 
-            : '/images/placeholder.jpg';
+
+        $storedPath = $this->getRawOriginal('image_url') ?: $value;
+
+        return $storedPath
+            ? $this->resolveImageUrl($storedPath)
+            : null;
+    }
+
+    public function getIsActiveAttribute(): bool
+    {
+        return ($this->attributes['status'] ?? null) === 'active';
+    }
+
+    private function resolveImageUrl(string $path): string
+    {
+        if (Str::startsWith($path, ['http://', 'https://', '/'])) {
+            return $path;
+        }
+
+        return Storage::url($path);
     }
 }

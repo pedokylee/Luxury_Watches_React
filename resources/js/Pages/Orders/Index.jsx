@@ -1,13 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
+import AppImage from '@/Components/UI/AppImage';
 import { formatCurrency } from '@/Utils/formatCurrency';
-import { Clock, Package, Truck, ShoppingBag } from 'lucide-react';
-import { usePage } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { Package, ShoppingBag } from 'lucide-react';
 
 export default function OrdersIndex({ orders = [] }) {
-    const { auth } = usePage().props;
-
     const getStatusColor = (status) => {
         const colors = {
             pending: 'bg-amber-100 text-amber-800',
@@ -15,7 +12,10 @@ export default function OrdersIndex({ orders = [] }) {
             shipped: 'bg-green-100 text-green-800',
             delivered: 'bg-emerald-100 text-emerald-800',
             cancelled: 'bg-red-100 text-red-800',
+            paid: 'bg-blue-100 text-blue-800',
+            completed: 'bg-emerald-100 text-emerald-800',
         };
+
         return colors[status] || 'bg-gray-100 text-gray-800';
     };
 
@@ -35,23 +35,19 @@ export default function OrdersIndex({ orders = [] }) {
                     <div className="text-center py-20">
                         <ShoppingBag className="mx-auto h-24 w-24 text-gray-400 mb-6" />
                         <h3 className="text-2xl font-medium text-white mb-4">No orders yet</h3>
-                        <Link 
-                            href="/products" 
-                            className="inline-flex items-center px-6 py-3 border border-gray-700 text-white bg-transparent hover:bg-gray-800 rounded-xl transition-all duration-200"
-                        >
+                        <Link href="/products" className="inline-flex items-center px-6 py-3 border border-gray-700 text-white bg-transparent hover:bg-gray-800 rounded-xl transition-all duration-200">
                             Start Shopping
                         </Link>
                     </div>
                 ) : (
                     <div className="space-y-4">
                         {orders.map((order) => (
-                            <Link 
+                            <Link
                                 key={order.id}
                                 href={`/orders/${order.id}`}
                                 className="block bg-gray-900/30 border border-gray-700/50 backdrop-blur-xl rounded-2xl p-6 hover:border-gray-600 hover:bg-gray-900/50 transition-all"
                             >
                                 <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-start">
-                                    {/* Products */}
                                     <div className="md:col-span-2">
                                         <p className="text-xs text-gray-400 uppercase tracking-wider mb-3">Products</p>
                                         <div className="space-y-3">
@@ -59,8 +55,16 @@ export default function OrdersIndex({ orders = [] }) {
                                                 <div key={item.id} className="flex gap-3 justify-between items-start">
                                                     <div className="flex gap-3 min-w-0 flex-1">
                                                         <div className="w-12 h-12 bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg flex-shrink-0 overflow-hidden">
-                                                            {item.product?.images?.[0] ? (
-                                                                <img src={item.product.images[0].url} alt={item.product.name} className="w-full h-full object-cover" />
+                                                            {item.product ? (
+                                                                <AppImage
+                                                                    src={item.product.image_url || item.product.images?.[0]?.url}
+                                                                    alt={item.product.name}
+                                                                    label={item.product.name}
+                                                                    subtitle={item.product?.brand?.name || ''}
+                                                                    compact
+                                                                    className="w-full h-full"
+                                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                />
                                                             ) : (
                                                                 <div className="w-full h-full bg-gray-700 flex items-center justify-center">
                                                                     <Package size={16} className="text-gray-500" />
@@ -72,7 +76,7 @@ export default function OrdersIndex({ orders = [] }) {
                                                                 {item.product?.name || 'Product'}
                                                             </p>
                                                             <p className="text-xs text-gray-400">
-                                                                {item.product?.brand?.name && `${item.product.brand.name} • `}
+                                                                {item.product?.brand?.name ? `${item.product.brand.name} - ` : ''}
                                                                 Qty: {item.quantity}
                                                             </p>
                                                         </div>
@@ -92,13 +96,11 @@ export default function OrdersIndex({ orders = [] }) {
                                         </div>
                                     </div>
 
-                                    {/* Order ID */}
                                     <div>
                                         <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">Order</p>
-                                        <p className="font-semibold text-white text-lg">#{order.id}</p>
+                                        <p className="font-semibold text-white text-lg">{order.order_number}</p>
                                     </div>
 
-                                    {/* Date */}
                                     <div>
                                         <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">Date</p>
                                         <p className="text-sm text-white">
@@ -106,7 +108,6 @@ export default function OrdersIndex({ orders = [] }) {
                                         </p>
                                     </div>
 
-                                    {/* Status & Total */}
                                     <div className="flex flex-col gap-3">
                                         <div>
                                             <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">Status</p>

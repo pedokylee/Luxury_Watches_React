@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-public function index(Request $request)
+    public function index(Request $request)
     {
         $products = (object) ['data' => [], 'links' => [], 'meta' => (object)['total' => 0]];
         $categories = [];
@@ -19,11 +19,16 @@ public function index(Request $request)
 
         try {
             $query = Product::with(['brand', 'category', 'images'])
-                ->select('id', 'name', 'slug', 'price', 'stock', 'brand_id', 'category_id', 'image_url');
+                ->where('status', 'active')
+                ->select('id', 'name', 'slug', 'price', 'stock', 'brand_id', 'category_id', 'image_url', 'status');
 
             if ($request->filled('search')) {
-                $query->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+                $search = $request->string('search')->trim()->toString();
+
+                $query->where(function ($builder) use ($search) {
+                    $builder->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('description', 'like', '%' . $search . '%');
+                });
             }
             if ($request->filled('category')) {
                 $query->where('category_id', $request->category);
@@ -56,12 +61,12 @@ public function index(Request $request)
                     break;
             }
 
-            $products = $query->paginate(12)->appends($request->query());
+            $products = $query->paginate(12)->withQueryString();
 
             $categories = Category::select('id', 'name')->orderBy('name')->get();
             $brands = Brand::select('id', 'name')->orderBy('name')->get();
-        } catch (\Exception $e) {
-            // DB error (MySQL not running), use empty data - frontend demo fallback
+        } catch (\Throwable $e) {
+            // Return empty data when the database is unavailable.
         }
 
         return Inertia::render('Products/Index', [
@@ -72,12 +77,17 @@ public function index(Request $request)
         ]);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $product = Product::with(['brand', 'category', 'images'])->findOrFail($id);
-        
+
+        if ($product->status !== 'active' && !optional($request->user())->is_admin) {
+            abort(404);
+        }
+
         $relatedProducts = Product::where('category_id', $product->category_id)
             ->where('id', '!=', $product->id)
+            ->where('status', 'active')
             ->with(['brand', 'images'])
             ->limit(4)
             ->get();
